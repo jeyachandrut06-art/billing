@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thangavel Tea Stall - Billing</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f2eb;
+    color: #30271f;
+}
+
+header {
+    background: #4b2e1f;
+    color: white;
+    text-align: center;
+    padding: 22px 12px;
+}
+
+header h1 {
+    margin: 0 0 8px;
+}
+
+header p {
+    margin: 0;
+    color: #f2d5a6;
+}
+
+.container {
+    max-width: 850px;
+    margin: 24px auto;
+    padding: 16px;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 14px;
+    margin-bottom: 18px;
+    box-shadow: 0 3px 12px #0000000d;
+}
+
+h2 {
+    margin-top: 0;
+    color: #4b2e1f;
+}
+
+.products {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.product {
+    border: 1px solid #e2d8cc;
+    padding: 14px;
+    border-radius: 10px;
+}
+
+.product button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+button {
+    background: #7a4528;
+    color: white;
+    border: none;
+    padding: 11px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+button:hover {
+    background: #57301d;
+}
+
+.remove {
+    background: #b42318;
+    padding: 6px 9px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 11px 5px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    color: #70452c;
+}
+
+input {
+    width: 100%;
+    padding: 11px;
+    margin: 7px 0 14px;
+    border: 1px solid #d5c8bb;
+    border-radius: 7px;
+    font-size: 16px;
+}
+
+.total {
+    font-size: 23px;
+    font-weight: bold;
+    text-align: right;
+    margin-top: 20px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.actions button {
+    flex: 1;
+    min-width: 130px;
+}
+
+.change {
+    background: #edf7ed;
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #725d4d;
+}
+
+@media (max-width: 480px) {
+    .products {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        padding: 10px;
+    }
+
+    .card {
+        padding: 14px;
+    }
+}
+
+@media print {
+    body {
+        background: white;
+    }
+
+    header {
+        background: white;
+        color: black;
+        padding: 10px;
+    }
+
+    header p {
+        color: black;
+    }
+
+    .products-card, .no-print, footer {
+        display: none !important;
+    }
+
+    .container {
+        margin: 0;
+        padding: 0;
+    }
+
+    .card {
+        box-shadow: none;
+        padding: 5px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>☕ Thangavel Tea Stall</h1>
+    <p>Fresh Tea • Good Taste • Happy Customers</p>
+</header>
+
+<div class="container">
+
+    <section class="card products-card">
+        <h2>Choose Products</h2>
+        <div class="products" id="products"></div>
+    </section>
+
+    <section class="card">
+        <h2>Customer Bill</h2>
+
+        <label for="customer">Customer Name (optional)</label>
+        <input id="customer" placeholder="Enter customer name">
+
+        <p>Bill No: <strong id="billNo"></strong></p>
+        <p>Date: <span id="date"></span></p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Amount</th>
+                    <th class="no-print">Remove</th>
+                </tr>
+            </thead>
+            <tbody id="billItems"></tbody>
+        </table>
+
+        <div class="total">
+            Total: ₹<span id="total">0.00</span>
+        </div>
+
+        <label for="paid">Amount Received (₹)</label>
+        <input id="paid" type="number" min="0" step="0.01"
+               placeholder="Enter payment received">
+
+        <div class="change">
+            Balance / Change: ₹<span id="change">0.00</span>
+            <p id="paymentStatus">Enter payment received.</p>
+        </div>
+
+        <div class="actions no-print" style="margin-top:18px">
+            <button onclick="printBill()">Print Bill</button>
+            <button onclick="newBill()">New Bill</button>
+        </div>
+    </section>
+</div>
+
+<footer>Thank you! Visit Thangavel Tea Stall Again.</footer>
+
+<script>
+const menu = [
+    { name: "Tea", price: 10 },
+    { name: "Coffee", price: 15 },
+    { name: "Boost", price: 20 },
+    { name: "Vadai", price: 8 },
+    { name: "Biscuit", price: 5 },
+    { name: "Samosa", price: 12 }
+];
+
+// Change the example product prices above to your actual prices.
+let cart = [];
+let billNumber = 1;
+
+function money(amount) {
+    return Number(amount).toFixed(2);
+}
+
+function showDate() {
+    document.getElementById("date").textContent =
+        new Date().toLocaleString("en-IN");
+}
+
+function showBillNumber() {
+    document.getElementById("billNo").textContent =
+        "TS-" + String(billNumber).padStart(3, "0");
+}
+
+function loadProducts() {
+    const container = document.getElementById("products");
+
+    container.innerHTML = menu.map((item, index) => `
+        <div class="product">
+            <strong>${item.name}</strong>
+            <p>₹${money(item.price)}</p>
+            <button onclick="addItem(${index})">
+                + Add Item
+            </button>
+        </div>
+    `).join("");
+}
+
+function addItem(index) {
+    const item = menu[index];
+    const existing = cart.find(product => product.name === item.name);
+
+    if (existing) {
+        existing.qty++;
+    } else {
+        cart.push({
+            name: item.name,
+            price: item.price,
+            qty: 1
+        });
+    }
+
+    renderBill();
+}
+
+function updateQty(index, value) {
+    const qty = Number(value);
+
+    if (!Number.isInteger(qty) || qty < 1) {
+        renderBill();
+        return;
+    }
+
+    cart[index].qty = qty;
+    renderBill();
+}
+
+function removeItem(index) {
+    cart.splice(index, 1);
+    renderBill();
+}
+
+function renderBill() {
+    const tbody = document.getElementById("billItems");
+
+    tbody.innerHTML = cart.map((item, index) => `
+        <tr>
+            <td>${item.name}</td>
+            <td>₹${money(item.price)}</td>
+            <td>
+                <input class="no-print"
+                    type="number" min="1" step="1"
+                    value="${item.qty}"
+                    style="width:60px;margin:0;padding:6px"
+                    onchange="updateQty(${index}, this.value)">
+                <span class="print-only">${item.qty}</span>
+            </td>
+            <td>₹${money(item.price * item.qty)}</td>
+            <td class="no-print">
+                <button class="remove"
+                    onclick="removeItem(${index})">X</button>
+            </td>
+        </tr>
+    `).join("");
+
+    const total = cart.reduce(
+        (sum, item) => sum + item.price * item.qty, 0
+    );
+
+    document.getElementById("total").textContent = money(total);
+    calculateChange();
+}
+
+function calculateChange() {
+    const total = cart.reduce(
+        (sum, item) => sum + item.price * item.qty, 0
+    );
+
+    const paidInput = document.getElementById("paid");
+    const paid = paidInput.value === "" ? 0 : Number(paidInput.value);
+    const valid = paidInput.value !== "" &&
+        Number.isFinite(paid) && paid >= 0;
+
+    document.getElementById("change").textContent =
+        money(valid ? Math.max(0, paid - total) : 0);
+
+    let status = "Enter payment received.";
+
+    if (valid && paid < total) {
+        status = "Amount due: ₹" + money(total - paid);
+    } else if (valid && paid >= total) {
+        status = "Payment received.";
+    }
+
+    document.getElementById("paymentStatus").textContent = status;
+}
+
+function printBill() {
+    if (cart.length === 0) {
+        alert("Please add at least one item.");
+        return;
+    }
+
+    const paidInput = document.getElementById("paid");
+    const total = cart.reduce(
+        (sum, item) => sum + item.price * item.qty, 0
+    );
+
+    if (paidInput.value === "" ||
+        !Number.isFinite(Number(paidInput.value)) ||
+        Number(paidInput.value) < total) {
+        alert("Please enter the full amount received before printing.");
+        return;
+    }
+
+    window.print();
+}
+
+function newBill() {
+    if (cart.length && !confirm("Start a new bill?")) return;
+
+    cart = [];
+    billNumber++;
+    document.getElementById("customer").value = "";
+    document.getElementById("paid").value = "";
+
+    showBillNumber();
+    showDate();
+    renderBill();
+}
+
+document.getElementById("paid").addEventListener(
+    "input", calculateChange
+);
+
+loadProducts();
+showBillNumber();
+showDate();
+renderBill();
+</script>
+
+</body>
+</html>
